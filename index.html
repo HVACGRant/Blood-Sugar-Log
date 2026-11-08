@@ -663,6 +663,26 @@ $('#clearBtn').addEventListener('click',()=>{
   entries=[];persist();renderAll();toast('All readings erased');
 });
 
+/* ---------- earlier readings (added once, won't come back if deleted) ---------- */
+const SEED=[ // [id, year, month(0-11), day, hour, min, value, when, notes]
+  ['seed-2026-11-06-a',2026,10,6, 8, 0,273,'Fasting','Morning (time approximate)'],
+  ['seed-2026-11-06-b',2026,10,6,12,30,300,'','Lunch (time approximate)'],
+  ['seed-2026-11-06-c',2026,10,6,19,59,395,'After meal','After dinner'],
+  ['seed-2026-11-06-d',2026,10,6,22, 4,325,'',''],
+  ['seed-2026-11-07-a',2026,10,7, 9,40,276,'Fasting',''],
+  ['seed-2026-11-07-b',2026,10,7,13,14,234,'','Two eggs, 1 slice cheese'],
+  ['seed-2026-11-07-c',2026,10,7,14,44,214,'','Lemon shrimp and broccoli'],
+  ['seed-2026-11-07-d',2026,10,7,16,46,183,'',''],
+];
+(function seedOnce(){
+  if(settings.seeded)return;
+  const have=new Set(entries.map(e=>e.id));
+  for(const [id,y,mo,d,h,mi,value,ctx,notes] of SEED){
+    if(!have.has(id))entries.push({id,value,ts:new Date(y,mo,d,h,mi).getTime(),ctx,notes});
+  }
+  settings.seeded=1;persist();
+})();
+
 /* ---------- start ---------- */
 resetForm();renderAll();
 </script>
