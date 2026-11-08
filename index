@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Sugar Log">
+<meta name="theme-color" content="#0f766e">
+<title>Sugar Log</title>
+<link rel="icon" id="favicon">
+<link rel="apple-touch-icon" id="touchicon">
+<style>
+:root{
+  --bg:#f5f6f2;--card:#ffffff;--ink:#1b2320;--muted:#67716d;--line:#e2e6e0;
+  --accent:#0f766e;--accent-ink:#ffffff;--accent-soft:#d9efec;
+  --low:#d92d2d;--ok:#05875f;--high:#c97800;
+  --low-soft:#fde4e4;--ok-soft:#dcf3ea;--high-soft:#fdeed3;
+  --band:rgba(5,135,95,.10);
+  --radius:18px;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#0f1412;--card:#18201d;--ink:#eef2ef;--muted:#9aa6a1;--line:#28322e;
+    --accent:#2cc9b4;--accent-ink:#04211d;--accent-soft:#16352f;
+    --low:#ff7b7b;--ok:#3ed39f;--high:#ffc04d;
+    --low-soft:#3a1d1d;--ok-soft:#14322a;--high-soft:#3a2e14;
+    --band:rgba(62,211,159,.10);
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{font:17px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+  padding-bottom:calc(84px + env(safe-area-inset-bottom));min-height:100vh}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+.top{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;
+  padding:calc(10px + env(safe-area-inset-top)) 16px 10px;background:var(--bg)}
+.brand{display:flex;align-items:center;gap:10px}
+.brand img{width:34px;height:34px;border-radius:9px}
+.brand h1{font-size:21px;margin:0;font-weight:700;letter-spacing:-.01em}
+.icon-btn{width:44px;height:44px;border-radius:12px;border:0;background:transparent;display:grid;place-items:center;color:var(--muted)}
+.icon-btn svg{width:24px;height:24px}
+main{max-width:560px;margin:0 auto;padding:0 16px}
+.tab{display:none}.tab.active{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:14px}
+.card-title{font-weight:700;font-size:15px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px}
+
+/* mic */
+.mic-card{display:flex;align-items:center;gap:16px;padding:14px 16px}
+.mic{flex:none;width:76px;height:76px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);
+  display:grid;place-items:center;box-shadow:0 6px 18px rgba(15,118,110,.28);position:relative}
+.mic svg{width:34px;height:34px}
+.mic:disabled{background:var(--line);color:var(--muted);box-shadow:none}
+.mic.on{background:var(--low)}
+.mic.on::after{content:"";position:absolute;inset:-8px;border-radius:50%;border:3px solid var(--low);animation:pulse 1.2s ease-out infinite}
+@keyframes pulse{from{opacity:.8;transform:scale(.92)}to{opacity:0;transform:scale(1.18)}}
+.mic-label{font-weight:700;font-size:19px}
+.mic-hint{color:var(--muted);font-size:15px;margin-top:2px}
+.heard{background:var(--accent-soft);border-radius:14px;padding:10px 14px;margin:-4px 0 14px;font-size:15px}
+
+/* form */
+.reading-wrap{display:flex;align-items:baseline;justify-content:center;gap:8px;padding:4px 0 0}
+#value{width:100%;max-width:220px;border:0;border-bottom:2px solid var(--line);background:transparent;text-align:center;
+  font-size:60px;font-weight:800;letter-spacing:-.02em;padding:0 0 4px;outline:none;font-variant-numeric:tabular-nums}
+#value:focus{border-bottom-color:var(--accent)}
+#value::-webkit-outer-spin-button,#value::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+#value{-moz-appearance:textfield}
+.unit{color:var(--muted);font-weight:600}
+.value-status{text-align:center;min-height:26px;margin:8px 0 6px;font-weight:700}
+.label{font-size:14px;font-weight:700;color:var(--muted);margin:12px 0 8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid var(--line);background:transparent;border-radius:999px;padding:9px 14px;font-size:16px;font-weight:600}
+.chip.sel{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.row{display:flex;gap:8px;margin-top:14px}
+input[type=datetime-local],textarea,input[type=number].small,input[type=text]{
+  width:100%;border:1.5px solid var(--line);border-radius:12px;background:var(--bg);padding:12px;font-size:17px;outline:none}
+input[type=datetime-local]{min-height:50px}
+input:focus,textarea:focus{border-color:var(--accent)}
+textarea{margin-top:10px;resize:vertical;min-height:56px}
+.ghost{border:1.5px solid var(--line);background:transparent;border-radius:12px;padding:0 16px;font-weight:600;white-space:nowrap}
+.actions{display:flex;gap:10px;margin-top:14px}
+.primary{flex:1;border:0;border-radius:14px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:18px;padding:16px}
+.danger{border:0;border-radius:14px;background:var(--low-soft);color:var(--low);font-weight:700;padding:16px 18px}
+.wide{width:100%}
+.edit-banner{display:flex;justify-content:space-between;align-items:center;background:var(--high-soft);color:var(--ink);
+  border-radius:12px;padding:8px 12px;margin-bottom:8px;font-weight:600;font-size:15px}
+.link{border:0;background:none;color:var(--accent);font-weight:700;padding:4px}
+
+/* entries */
+.entry{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:0;background:transparent;padding:10px 0;border-bottom:1px solid var(--line)}
+.entry:last-child{border-bottom:0}
+.val{font-size:26px;font-weight:800;min-width:58px;font-variant-numeric:tabular-nums}
+.val.low{color:var(--low)}.val.ok{color:var(--ok)}.val.high{color:var(--high)}
+.meta{flex:1;min-width:0;display:flex;flex-direction:column}
+.meta .t{font-weight:600;font-size:15px}
+.meta .n{color:var(--muted);font-size:14px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.pill{font-size:12px;font-weight:700;border-radius:999px;padding:4px 9px;white-space:nowrap}
+.pill.low{background:var(--low-soft);color:var(--low)}.pill.ok{background:var(--ok-soft);color:var(--ok)}.pill.high{background:var(--high-soft);color:var(--high)}
+.list{padding:4px 16px}
+.day-h{display:flex;justify-content:space-between;align-items:baseline;margin:18px 4px 8px;font-weight:700}
+.muted{color:var(--muted);font-weight:500;font-size:14px}
+.empty{text-align:center;color:var(--muted);padding:30px 10px}
+
+/* trends */
+.seg{display:flex;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px;margin-bottom:14px}
+.seg button{flex:1;border:0;background:transparent;border-radius:10px;padding:10px 0;font-weight:700;color:var(--muted)}
+.seg button.sel{background:var(--accent);color:var(--accent-ink)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+.stat b{display:block;font-size:26px;font-variant-numeric:tabular-nums}
+.stat span{color:var(--muted);font-size:14px;font-weight:600}
+canvas{width:100%;height:230px;display:block}
+.ctx-row{display:flex;align-items:center;gap:10px;padding:8px 0}
+.ctx-row .name{width:96px;font-weight:600;font-size:15px}
+.ctx-row .bar{flex:1;height:10px;background:var(--line);border-radius:6px;overflow:hidden}
+.ctx-row .bar i{display:block;height:100%;border-radius:6px}
+.ctx-row .num{width:74px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+
+/* nav */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;justify-content:center;background:var(--card);
+  border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
+.tabs button{flex:1;max-width:180px;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:6px 0;font-size:12px;font-weight:700;color:var(--muted)}
+.tabs svg{width:26px;height:26px}
+.tabs button.sel{color:var(--accent)}
+
+/* dialog */
+dialog{border:0;border-radius:22px;padding:0;width:min(520px,calc(100% - 24px));background:var(--card);color:var(--ink)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.dlg{padding:20px}
+.dlg h2{margin:0 0 4px;font-size:21px}
+.dlg .field{margin-top:14px}
+.dlg .field label{display:block;font-size:14px;font-weight:700;color:var(--muted);margin-bottom:6px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-list{display:grid;gap:8px;margin-top:16px}
+.btn-list button{border:1.5px solid var(--line);background:transparent;border-radius:12px;padding:13px;font-weight:700;text-align:left}
+.btn-list .warn{color:var(--low)}
+.small-note{color:var(--muted);font-size:14px;margin-top:12px}
+
+#toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);
+  background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:14px;font-weight:600;font-size:15px;opacity:0;
+  pointer-events:none;transition:.25s;z-index:20;max-width:calc(100% - 32px);text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+#report{display:none}
+@media print{
+  .top,main,.tabs,#toast,dialog{display:none!important}
+  body{background:#fff;color:#000;padding:0}
+  #report{display:block;font:12px/1.4 system-ui,sans-serif;color:#000}
+  #report h2{margin:0 0 4px}
+  #report table{width:100%;border-collapse:collapse;margin-top:12px}
+  #report th,#report td{border-bottom:1px solid #ccc;padding:5px 6px;text-align:left;vertical-align:top}
+  #report .sum{display:flex;gap:24px;margin-top:8px}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand"><img id="brandIcon" alt=""><h1 id="appTitle">Sugar Log</h1></div>
+  <button class="icon-btn" id="openSettings" aria-label="Settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+  </button>
+</header>
+
+<main>
+  <!-- LOG -->
+  <section id="tab-log" class="tab active">
+    <div class="card mic-card">
+      <button id="micBtn" class="mic" aria-label="Speak a reading">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>
+      </button>
+      <div>
+        <div id="micLabel" class="mic-label">Tap and say it</div>
+        <div id="micHint" class="mic-hint">“142 after dinner, had pasta”</div>
+      </div>
+    </div>
+    <div id="heard" class="heard" hidden></div>
+
+    <form id="entryForm" class="card" autocomplete="off">
+      <div class="edit-banner" id="editBanner" hidden>Editing a reading <button type="button" id="cancelEdit" class="link">Cancel</button></div>
+      <div class="reading-wrap">
+        <input id="value" type="number" inputmode="numeric" pattern="[0-9]*" min="10" max="700" placeholder="—" aria-label="Blood sugar reading">
+        <span class="unit">mg/dL</span>
+      </div>
+      <div id="valueStatus" class="value-status"></div>
+
+      <div class="label">When was it taken?</div>
+      <div class="chips" id="ctxChips">
+        <button type="button" class="chip" data-ctx="Fasting">Fasting</button>
+        <button type="button" class="chip" data-ctx="Before meal">Before meal</button>
+        <button type="button" class="chip" data-ctx="After meal">After meal</button>
+        <button type="button" class="chip" data-ctx="Bedtime">Bedtime</button>
+        <button type="button" class="chip" data-ctx="Other">Other</button>
+      </div>
+
+      <div class="row">
+        <input type="datetime-local" id="when" aria-label="Date and time">
+        <button type="button" class="ghost" id="nowBtn">Now</button>
+      </div>
+      <textarea id="notes" rows="2" placeholder="Notes — food, meds, exercise, how you feel"></textarea>
+
+      <div class="actions">
+        <button type="submit" class="primary" id="saveBtn">Save reading</button>
+        <button type="button" class="danger" id="deleteBtn" hidden>Delete</button>
+      </div>
+    </form>
+
+    <div class="card">
+      <div class="card-title">Today</div>
+      <div id="todayList"></div>
+    </div>
+  </section>
+
+  <!-- HISTORY -->
+  <section id="tab-history" class="tab">
+    <div id="historyList"></div>
+  </section>
+
+  <!-- TRENDS -->
+  <section id="tab-trends" class="tab">
+    <div class="seg" id="rangeSeg">
+      <button data-r="7">7 days</button><button data-r="14" class="sel">14 days</button><button data-r="30">30 days</button><button data-r="90">90 days</button>
+    </div>
+    <div class="stats" id="stats"></div>
+    <div class="card"><div class="card-title">Readings</div><canvas id="chart"></canvas></div>
+    <div class="card"><div class="card-title">Average by time of day</div><div id="byCtx"></div></div>
+    <button class="primary wide" id="reportBtn">Print / save report for the doctor</button>
+    <div style="height:14px"></div>
+    <button class="ghost wide" style="padding:14px" id="csvBtn">Export spreadsheet (CSV)</button>
+    <div style="height:20px"></div>
+  </section>
+</main>
+
+<nav class="tabs">
+  <button data-tab="log" class="sel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Log</button>
+  <button data-tab="history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>History</button>
+  <button data-tab="trends"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>Trends</button>
+</nav>
+
+<dialog id="settings">
+  <form class="dlg" method="dialog">
+    <h2>Settings</h2>
+    <div class="field">
+      <label for="sName">Name (shows in the title)</label>
+      <input type="text" id="sName" placeholder="Optional">
+    </div>
+    <div class="field">
+      <label>Target range (mg/dL) — use the numbers her doctor gave</label>
+      <div class="two">
+        <input type="number" class="small" id="sLow" inputmode="numeric" aria-label="Low target">
+        <input type="number" class="small" id="sHigh" inputmode="numeric" aria-label="High target">
+      </div>
+    </div>
+    <div class="btn-list">
+      <button type="button" id="backupBtn">Back up all readings</button>
+      <button type="button" id="restoreBtn">Restore from a backup file</button>
+      <button type="button" class="warn" id="clearBtn">Erase everything</button>
+    </div>
+    <p class="small-note" id="backupNote"></p>
+    <p class="small-note">Readings are stored only on this phone. Back up now and then so nothing is lost if the phone is replaced.</p>
+    <div class="actions"><button class="primary" value="close">Done</button></div>
+  </form>
+  <input type="file" id="restoreFile" accept=".json,application/json" hidden>
+</dialog>
+
+<div id="toast" role="status"></div>
+<div id="report"></div>
+
+<script id="parser">
+/* ---------- voice parsing (no DOM) ---------- */
+const UNITS={zero:0,oh:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,
+  thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19};
+const TENS={twenty:20,thirty:30,forty:40,fourty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90};
+const isNumWord=(w,started)=> (w in TENS)||w==='hundred'||((w in UNITS)&&(w!=='oh'||started));
+
+function runToNumber(run){
+  if(run.includes('hundred')){
+    let total=0,cur=0;
+    for(const w of run){
+      if(w==='hundred'){total+=(cur||1)*100;cur=0}
+      else if(w in TENS)cur+=TENS[w];
+      else cur+=UNITS[w];
+    }
+    return total+cur;
+  }
+  // "one forty two" -> 142, "one oh five" -> 105, "ninety eight" -> 98
+  const segs=[];
+  for(let i=0;i<run.length;i++){
+    const w=run[i];
+    if(w in TENS){
+      let v=TENS[w];
+      const nx=run[i+1];
+      if(nx in UNITS&&UNITS[nx]>0&&UNITS[nx]<10){v+=UNITS[nx];i++}
+      segs.push(String(v));
+    } else segs.push(String(UNITS[w]));
+  }
+  return Number(segs.join(''));
+}
+
+function wordsToDigits(text){
+  const toks=text.replace(/-/g,' ').split(/\s+/).filter(Boolean);
+  const out=[];
+  let i=0;
+  while(i<toks.length){
+    const w=toks[i].replace(/[^a-z]/g,'');
+    if(w&&isNumWord(w,false)){
+      const run=[];let trail='';
+      while(i<toks.length){
+        const raw=toks[i],x=raw.replace(/[^a-z]/g,'');
+        if(x&&isNumWord(x,run.length>0)){run.push(x);trail=raw.replace(/[a-z]/gi,'');i++;if(trail)break}
+        else if(x==='and'&&run.length&&i+1<toks.length&&isNumWord(toks[i+1].replace(/[^a-z]/g,''),true)){i++}
+        else break;
+      }
+      out.push(String(runToNumber(run))+trail);
+    } else {out.push(toks[i]);i++}
+  }
+  return out.join(' ');
+}
+
+const CTX_RULES=[
+  [/\b(fasting|just woke|woke up|wake up|waking up|first thing)\b/,'Fasting'],
+  [/\b(before|pre)[\s-]?(breakfast|lunch|dinner|supper|eating|a meal|meal|food)\b/,'Before meal'],
+  [/\b(after|post)[\s-]?(breakfast|lunch|dinner|supper|eating|a meal|meal|food|i ate)\b/,'After meal'],
+  [/\b(bed ?time|before bed|going to bed|before sleep)\b/,'Bedtime'],
+];
+const FILLERS=[
+  /\b((my|the) )?(blood sugar|glucose|sugar level|sugar reading)( level| reading)?( is| was| reads| read|'s| came out( at| to)?| at| of)?\b/g,
+  /\bmy sugar( is| was|'s)?\b/g,
+  /\bsugar (is|was)\b/g,
+  /\b(my |the )?(reading|number)( is| was)\b/g,
+  /\bmg ?\/ ?dl\b|\bmilligrams?( per deciliter)?\b|\bmg\b/g,
+  /^\s*(it's|it is|it was|okay|ok|so|um+|uh+)\b/g,
+  /\b(um+|uh+)\b/g,
+  /\b(and )?(it was|it's|it is|was)\s*[.,]?\s*$/g,
+];
+
+function parseSpeech(raw){
+  let t=wordsToDigits(String(raw).toLowerCase());
+  let value=null;
+  for(const m of t.matchAll(/\d+(?::\d+)?/g)){
+    const s=m[0];
+    if(s.includes(':'))continue;
+    const before=t.slice(Math.max(0,m.index-4),m.index);
+    if(/(at|@)\s*$/.test(before)&&+s<=12)continue;
+    const after=t.slice(m.index+s.length,m.index+s.length+14);
+    if(/^\s*(am|pm|a\.m|p\.m|o'?clock|min|hour|unit|gram|g\b|carb|percent|%|cookie|slice|piece|cup|time)/.test(after))continue;
+    const v=+s;
+    if(v>=20&&v<=600){value=v;t=t.slice(0,m.index)+' '+t.slice(m.index+s.length);break}
+  }
+  let ctx='';
+  for(const [re,c] of CTX_RULES){if(re.test(t)){ctx=c;break}}
+  let n=t;
+  for(const re of FILLERS)n=n.replace(re,' ');
+  n=n.replace(/\s+([,.!?])/g,'$1').replace(/\s+/g,' ').replace(/^[\s,.;:!-]+|[\s,;:-]+$/g,'').trim();
+  if(/^(fasting|bedtime|bed time|before bed)\.?$/.test(n))n='';
+  if(n)n=n[0].toUpperCase()+n.slice(1);
+  return {value,ctx,notes:n};
+}
+if(typeof module!=='undefined')module.exports={parseSpeech,wordsToDigits};
+</script>
+
+<script>
+/* ---------- app ---------- */
+const $=s=>document.querySelector(s);
+const $$=s=>[...document.querySelectorAll(s)];
+const KEY='sugarlog.entries.v1',SKEY='sugarlog.settings.v1';
+const load=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v??d}catch(e){return d}};
+let entries=load(KEY,[]);
+let settings=Object.assign({low:70,high:180,name:'',lastBackup:0},load(SKEY,{}));
+let editingId=null,ctx='',range=14,whenTouched=false;
+
+function persist(){
+  try{localStorage.setItem(KEY,JSON.stringify(entries));localStorage.setItem(SKEY,JSON.stringify(settings))}
+  catch(e){toast('Could not save — browser storage is blocked')}
+}
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const status=v=>v<settings.low?'low':v>settings.high?'high':'ok';
+const STATUS_TXT={low:'Low',ok:'In range',high:'High'};
+const pad=n=>String(n).padStart(2,'0');
+const toLocalInput=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const dayKey=ts=>{const d=new Date(ts);return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`};
+const fmtTime=ts=>new Date(ts).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+function dayLabel(ts){
+  const t=new Date();t.setHours(0,0,0,0);
+  const x=new Date(ts);x.setHours(0,0,0,0);
+  const diff=Math.round((t-x)/864e5);
+  if(diff===0)return'Today';if(diff===1)return'Yesterday';
+  const o={weekday:'short',month:'short',day:'numeric'};
+  if(x.getFullYear()!==t.getFullYear())o.year='numeric';
+  return x.toLocaleDateString([],o);
+}
+const avg=a=>a.length?Math.round(a.reduce((s,e)=>s+e.value,0)/a.length):0;
+
+let toastT;
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2600)}
+
+/* ---------- icon ---------- */
+const ICON_SVG=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180"><rect width="180" height="180" rx="40" fill="#0f766e"/><path d="M90 30c24 32 44 56 44 80a44 44 0 0 1-88 0c0-24 20-48 44-80z" fill="#fff"/><path d="M62 114h16l7-14 11 26 7-12h15" fill="none" stroke="#0f766e" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+(function icons(){
+  const url='data:image/svg+xml,'+encodeURIComponent(ICON_SVG);
+  $('#favicon').href=url;$('#brandIcon').src=url;
+  const img=new Image();img.onload=()=>{try{const c=document.createElement('canvas');c.width=c.height=180;c.getContext('2d').drawImage(img,0,0,180,180);$('#touchicon').href=c.toDataURL('image/png')}catch(e){}};img.src=url;
+})();
+
+/* ---------- form ---------- */
+function setCtx(c){ctx=c;$$('#ctxChips .chip').forEach(b=>b.classList.toggle('sel',b.dataset.ctx===c))}
+$('#ctxChips').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;setCtx(ctx===b.dataset.ctx?'':b.dataset.ctx)});
+
+function updateValueStatus(){
+  const v=Number($('#value').value),el=$('#valueStatus');
+  if(!v){el.textContent='';return}
+  const s=status(v);el.textContent=STATUS_TXT[s];el.style.color=`var(--${s})`;
+}
+$('#value').addEventListener('input',updateValueStatus);
+
+function setNow(){$('#when').value=toLocalInput(new Date());whenTouched=false}
+$('#nowBtn').addEventListener('click',setNow);
+$('#when').addEventListener('change',()=>{whenTouched=true});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!whenTouched&&!editingId)setNow()});
+
+function resetForm(){
+  editingId=null;$('#value').value='';$('#notes').value='';setCtx('');setNow();updateValueStatus();
+  $('#editBanner').hidden=true;$('#deleteBtn').hidden=true;$('#saveBtn').textContent='Save reading';$('#heard').hidden=true;
+}
+
+$('#entryForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const v=Math.round(Number($('#value').value));
+  if(!v||v<10||v>700){toast('Enter a reading first');$('#value').focus();return}
+  let ts=Date.now();
+  if(whenTouched||editingId){const p=new Date($('#when').value).getTime();if(!isNaN(p))ts=p}
+  const notes=$('#notes').value.trim();
+  if(editingId){
+    const en=entries.find(x=>x.id===editingId);
+    if(en)Object.assign(en,{value:v,ts,ctx,notes});
+    toast('Reading updated');
+  } else {
+    entries.push({id:uid(),value:v,ts,ctx,notes});
+    const s=status(v);
+    toast(s==='ok'?`Saved ${v} — in range`:`Saved ${v} — ${STATUS_TXT[s].toLowerCase()}`);
+  }
+  persist();resetForm();renderAll();
+});
+
+function startEdit(id){
+  const en=entries.find(x=>x.id===id);if(!en)return;
+  editingId=id;
+  $('#value').value=en.value;$('#notes').value=en.notes||'';setCtx(en.ctx||'');
+  $('#when').value=toLocalInput(new Date(en.ts));whenTouched=true;updateValueStatus();
+  $('#editBanner').hidden=false;$('#deleteBtn').hidden=false;$('#saveBtn').textContent='Update reading';
+  showTab('log');window.scrollTo({top:0,behavior:'smooth'});
+}
+$('#cancelEdit').addEventListener('click',resetForm);
+$('#deleteBtn').addEventListener('click',()=>{
+  if(!editingId||!confirm('Delete this reading?'))return;
+  entries=entries.filter(x=>x.id!==editingId);persist();resetForm();renderAll();toast('Deleted');
+});
+document.addEventListener('click',e=>{const b=e.target.closest('.entry');if(b)startEdit(b.dataset.id)});
+
+/* ---------- voice ---------- */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+let rec=null,listening=false,lastHeard='';
+function showHeard(txt,extra){const h=$('#heard');h.hidden=false;h.innerHTML=`<b>Heard:</b> ${txt?'“'+esc(txt)+'”':'…'}${extra?'<br>'+extra:''}`}
+if(!SR){
+  $('#micBtn').disabled=true;
+  $('#micLabel').textContent='Voice not available here';
+  $('#micHint').textContent='Tip: tap Notes and use the keyboard’s mic';
+}
+$('#micBtn').addEventListener('click',()=>{
+  if(!SR)return;
+  if(listening){try{rec.stop()}catch(e){}return}
+  let finalText='';lastHeard='';
+  rec=new SR();rec.lang=navigator.language||'en-US';rec.interimResults=true;rec.continuous=false;rec.maxAlternatives=1;
+  rec.onstart=()=>{listening=true;$('#micBtn').classList.add('on');$('#micLabel').textContent='Listening…';$('#micHint').textContent='Tap again when done';showHeard('')};
+  rec.onresult=ev=>{
+    let interim='';
+    for(let i=ev.resultIndex;i<ev.results.length;i++){const r=ev.results[i];if(r.isFinal)finalText+=r[0].transcript+' ';else interim+=r[0].transcript}
+    lastHeard=(finalText+interim).trim();showHeard(lastHeard);
+  };
+  rec.onerror=ev=>{
+    if(ev.error==='not-allowed'||ev.error==='service-not-allowed')toast('Microphone is blocked — allow it for this site');
+    else if(ev.error==='no-speech')toast('Didn’t catch that — try again');
+    else if(ev.error!=='aborted')toast('Voice error: '+ev.error);
+  };
+  rec.onend=()=>{
+    listening=false;$('#micBtn').classList.remove('on');
+    $('#micLabel').textContent='Tap and say it';$('#micHint').textContent='“142 after dinner, had pasta”';
+    const text=(finalText.trim()||lastHeard).trim();
+    if(text)applySpeech(text);else $('#heard').hidden=true;
+  };
+  try{rec.start()}catch(e){toast('Could not start the microphone')}
+});
+function applySpeech(raw){
+  const p=parseSpeech(raw);
+  if(p.value){$('#value').value=p.value;updateValueStatus()}
+  if(p.ctx)setCtx(p.ctx);
+  if(p.notes){const n=$('#notes');n.value=n.value?n.value.trim()+' '+p.notes:p.notes}
+  showHeard(raw,p.value?'Check it, then tap <b>Save</b>.':'No number found — type the reading in.');
+  if(p.value)toast(`Got ${p.value} — tap Save`);
+}
+
+/* ---------- renders ---------- */
+function rowHTML(e){
+  const s=status(e.value);
+  return `<button class="entry" data-id="${e.id}"><span class="val ${s}">${e.value}</span><span class="meta"><span class="t">${fmtTime(e.ts)}${e.ctx?' · '+esc(e.ctx):''}</span>${e.notes?`<span class="n">${esc(e.notes)}</span>`:''}</span><span class="pill ${s}">${STATUS_TXT[s]}</span></button>`;
+}
+function renderToday(){
+  const k=dayKey(Date.now());
+  const list=entries.filter(e=>dayKey(e.ts)===k).sort((a,b)=>b.ts-a.ts);
+  $('#todayList').innerHTML=list.length?list.map(rowHTML).join(''):'<div class="muted">No readings yet today.</div>';
+}
+function renderHistory(){
+  if(!entries.length){$('#historyList').innerHTML='<div class="empty">Nothing logged yet.<br>Readings will show up here, grouped by day.</div>';return}
+  const sorted=[...entries].sort((a,b)=>b.ts-a.ts);
+  const groups=new Map();
+  for(const e of sorted){const k=dayKey(e.ts);if(!groups.has(k))groups.set(k,[]);groups.get(k).push(e)}
+  let html='';
+  for(const [,list] of groups){
+    html+=`<div class="day-h"><span>${dayLabel(list[0].ts)}</span><span class="muted">avg ${avg(list)} · ${list.length} reading${list.length>1?'s':''}</span></div><div class="card list">${list.map(rowHTML).join('')}</div>`;
+  }
+  $('#historyList').innerHTML=html;
+}
+function inRange(){const since=Date.now()-range*864e5;return entries.filter(e=>e.ts>=since).sort((a,b)=>a.ts-b.ts)}
+function renderTrends(){
+  const list=inRange();
+  const n=list.length;
+  const ok=list.filter(e=>status(e.value)==='ok').length;
+  const lows=list.filter(e=>status(e.value)==='low').length;
+  const highs=list.filter(e=>status(e.value)==='high').length;
+  const vals=list.map(e=>e.value);
+  $('#stats').innerHTML=n?`
+    <div class="stat"><b>${avg(list)}</b><span>Average</span></div>
+    <div class="stat"><b style="color:var(--ok)">${Math.round(ok/n*100)}%</b><span>In range</span></div>
+    <div class="stat"><b>${Math.min(...vals)}–${Math.max(...vals)}</b><span>Low – high</span></div>
+    <div class="stat"><b>${n}</b><span>Readings · <span style="color:var(--low)">${lows} low</span> · <span style="color:var(--high)">${highs} high</span></span></div>`
+    :`<div class="stat" style="grid-column:1/-1"><span>No readings in the last ${range} days.</span></div>`;
+  const order=['Fasting','Before meal','After meal','Bedtime','Other',''];
+  const maxV=Math.max(settings.high+60,...vals,1);
+  $('#byCtx').innerHTML=order.map(c=>{
+    const g=list.filter(e=>(e.ctx||'')===c);if(!g.length)return'';
+    const a=avg(g),s=status(a);
+    return `<div class="ctx-row"><span class="name">${c||'Not set'}</span><span class="bar"><i style="width:${Math.min(100,a/maxV*100)}%;background:var(--${s})"></i></span><span class="num">${a} <span class="muted">×${g.length}</span></span></div>`;
+  }).join('')||'<div class="muted">No data yet.</div>';
+  drawChart(list);
+}
+function drawChart(list){
+  const cv=$('#chart'),w=cv.clientWidth,h=cv.clientHeight;if(!w)return;
+  const dpr=window.devicePixelRatio||1;cv.width=w*dpr;cv.height=h*dpr;
+  const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
+  const css=getComputedStyle(document.documentElement),c=v=>css.getPropertyValue(v).trim();
+  const L=36,R=8,T=8,B=24,pw=w-L-R,ph=h-T-B;
+  const t1=Date.now(),t0=t1-range*864e5;
+  const vals=list.map(e=>e.value);
+  const yMin=Math.max(0,Math.floor((Math.min(40,...vals)-10)/20)*20);
+  const yMax=Math.ceil((Math.max(260,...vals)+10)/20)*20;
+  const X=t=>L+(t-t0)/(t1-t0)*pw,Y=v=>T+(1-(v-yMin)/(yMax-yMin))*ph;
+  g.font='11px system-ui,sans-serif';g.fillStyle=c('--muted');g.strokeStyle=c('--line');g.lineWidth=1;
+  // band
+  g.fillStyle=c('--band');g.fillRect(L,Y(settings.high),pw,Y(settings.low)-Y(settings.high));
+  // grid
+  g.fillStyle=c('--muted');g.textAlign='right';g.textBaseline='middle';
+  const step=yMax-yMin>300?100:50;
+  for(let v=Math.ceil(yMin/step)*step;v<=yMax;v+=step){g.beginPath();g.moveTo(L,Y(v));g.lineTo(w-R,Y(v));g.stroke();g.fillText(v,L-6,Y(v))}
+  // x labels
+  g.textAlign='center';g.textBaseline='top';
+  const n=range<=7?7:range<=14?7:range<=30?6:6;
+  for(let i=0;i<=n;i++){const t=t0+(t1-t0)*i/n;const d=new Date(t);const lbl=`${d.getMonth()+1}/${d.getDate()}`;g.fillText(lbl,Math.min(w-R-12,Math.max(L+12,X(t))),h-B+6)}
+  if(!list.length){g.textAlign='center';g.textBaseline='middle';g.font='14px system-ui,sans-serif';g.fillText('No readings yet',L+pw/2,T+ph/2);return}
+  // line
+  g.strokeStyle=c('--muted');g.globalAlpha=.35;g.beginPath();
+  list.forEach((e,i)=>{i?g.lineTo(X(e.ts),Y(e.value)):g.moveTo(X(e.ts),Y(e.value))});g.stroke();g.globalAlpha=1;
+  // dots
+  for(const e of list){g.fillStyle=c('--'+status(e.value));g.beginPath();g.arc(X(e.ts),Y(e.value),range>30?3:4.5,0,7);g.fill()}
+}
+function renderAll(){
+  renderToday();renderHistory();
+  if($('#tab-trends').classList.contains('active'))renderTrends();
+  const nm=(settings.name||'').trim();
+  $('#appTitle').textContent=nm?`${nm}'s Sugar Log`:'Sugar Log';
+}
+
+/* ---------- tabs ---------- */
+function showTab(name){
+  $$('.tab').forEach(s=>s.classList.toggle('active',s.id==='tab-'+name));
+  $$('.tabs button').forEach(b=>b.classList.toggle('sel',b.dataset.tab===name));
+  if(name==='trends')renderTrends();
+  window.scrollTo(0,0);
+}
+$$('.tabs button').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
+$('#rangeSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;range=+b.dataset.r;$$('#rangeSeg button').forEach(x=>x.classList.toggle('sel',x===b));renderTrends()});
+window.addEventListener('resize',()=>{if($('#tab-trends').classList.contains('active'))drawChart(inRange())});
+
+/* ---------- export / report ---------- */
+async function shareOrDownload(name,text,type){
+  const file=new File([text],name,{type});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){
+    try{await navigator.share({files:[file],title:name});return true}catch(e){if(e.name==='AbortError')return false}
+  }
+  const a=document.createElement('a');a.href=URL.createObjectURL(file);a.download=name;document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500);return true;
+}
+function toCSV(list){
+  const rows=[['Date','Time','Reading (mg/dL)','Status','When','Notes']];
+  for(const e of list){const d=new Date(e.ts);rows.push([d.toLocaleDateString(),fmtTime(e.ts),e.value,STATUS_TXT[status(e.value)],e.ctx||'',e.notes||''])}
+  return rows.map(r=>r.map(x=>`"${String(x).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+}
+$('#csvBtn').addEventListener('click',()=>{
+  const list=[...entries].sort((a,b)=>a.ts-b.ts);
+  if(!list.length){toast('Nothing to export yet');return}
+  shareOrDownload(`sugar-log-${dayKey(Date.now())}.csv`,toCSV(list),'text/csv');
+});
+$('#reportBtn').addEventListener('click',()=>{
+  const list=inRange();
+  if(!list.length){toast('No readings in this range');return}
+  const ok=list.filter(e=>status(e.value)==='ok').length;
+  const vals=list.map(e=>e.value);
+  const nm=(settings.name||'').trim();
+  $('#report').innerHTML=`<h2>${nm?esc(nm)+' — ':''}Blood Sugar Report</h2>
+    <div>${new Date(list[0].ts).toLocaleDateString()} to ${new Date(list[list.length-1].ts).toLocaleDateString()} · target ${settings.low}–${settings.high} mg/dL</div>
+    <div class="sum"><div><b>${list.length}</b> readings</div><div>Average <b>${avg(list)}</b></div><div>Range <b>${Math.min(...vals)}–${Math.max(...vals)}</b></div><div>In range <b>${Math.round(ok/list.length*100)}%</b></div></div>
+    <table><thead><tr><th>Date</th><th>Time</th><th>mg/dL</th><th>Status</th><th>When</th><th>Notes</th></tr></thead><tbody>
+    ${[...list].reverse().map(e=>`<tr><td>${new Date(e.ts).toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'})}</td><td>${fmtTime(e.ts)}</td><td><b>${e.value}</b></td><td>${STATUS_TXT[status(e.value)]}</td><td>${esc(e.ctx||'')}</td><td>${esc(e.notes||'')}</td></tr>`).join('')}
+    </tbody></table>`;
+  window.print();
+});
+
+/* ---------- settings ---------- */
+function fillSettings(){
+  $('#sName').value=settings.name||'';$('#sLow').value=settings.low;$('#sHigh').value=settings.high;
+  $('#backupNote').textContent=settings.lastBackup?`Last backup: ${new Date(settings.lastBackup).toLocaleDateString()}`:'No backup made yet.';
+}
+$('#openSettings').addEventListener('click',()=>{fillSettings();$('#settings').showModal()});
+$('#sName').addEventListener('input',e=>{settings.name=e.target.value;persist();renderAll()});
+function saveRange(){
+  const lo=Math.round(+$('#sLow').value),hi=Math.round(+$('#sHigh').value);
+  if(lo>=20&&hi<=600&&lo<hi){settings.low=lo;settings.high=hi;persist();renderAll();updateValueStatus()}
+  else toast('Low must be less than high');
+}
+$('#sLow').addEventListener('change',saveRange);$('#sHigh').addEventListener('change',saveRange);
+$('#backupBtn').addEventListener('click',async()=>{
+  const data=JSON.stringify({app:'sugar-log',version:1,exported:new Date().toISOString(),settings:{low:settings.low,high:settings.high,name:settings.name},entries},null,1);
+  const done=await shareOrDownload(`sugar-log-backup-${dayKey(Date.now())}.json`,data,'application/json');
+  if(done){settings.lastBackup=Date.now();persist();fillSettings()}
+});
+$('#restoreBtn').addEventListener('click',()=>$('#restoreFile').click());
+$('#restoreFile').addEventListener('change',async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  try{
+    const d=JSON.parse(await f.text());
+    const incoming=Array.isArray(d)?d:d.entries;
+    if(!Array.isArray(incoming))throw 0;
+    const have=new Set(entries.map(x=>x.id));let added=0;
+    for(const x of incoming){
+      if(!x||!x.id||have.has(x.id)||!Number.isFinite(+x.value)||!Number.isFinite(+x.ts))continue;
+      entries.push({id:String(x.id),value:Math.round(+x.value),ts:+x.ts,ctx:String(x.ctx||''),notes:String(x.notes||'')});added++;
+    }
+    persist();renderAll();toast(`Restored ${added} reading${added===1?'':'s'}`);
+  }catch(err){toast('That file isn’t a Sugar Log backup')}
+});
+$('#clearBtn').addEventListener('click',()=>{
+  if(!entries.length){toast('Already empty');return}
+  if(!confirm(`Erase all ${entries.length} readings from this phone?`))return;
+  if(!confirm('Are you sure? This can’t be undone unless you have a backup.'))return;
+  entries=[];persist();renderAll();toast('All readings erased');
+});
+
+/* ---------- start ---------- */
+resetForm();renderAll();
+</script>
+</body>
+</html>
