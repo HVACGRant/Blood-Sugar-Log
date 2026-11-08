@@ -196,7 +196,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 
       <div class="row">
         <input type="datetime-local" id="when" aria-label="Date and time">
-        <button type="button" class="ghost" id="nowBtn">Now</button>
+        <button type="button" class="ghost" id="nowBtn" hidden>Back to now</button>
       </div>
       <textarea id="notes" rows="2" placeholder="Notes — food, meds, exercise, how you feel"></textarea>
     </form>
@@ -410,9 +410,11 @@ function updateValueStatus(){
 }
 $('#value').addEventListener('input',updateValueStatus);
 
-function setNow(){$('#when').value=toLocalInput(new Date());whenTouched=false}
+function setNow(){$('#when').value=toLocalInput(new Date());whenTouched=false;$('#nowBtn').hidden=true}
 $('#nowBtn').addEventListener('click',setNow);
-$('#when').addEventListener('change',()=>{whenTouched=true});
+$('#when').addEventListener('change',()=>{whenTouched=true;if(!editingId)$('#nowBtn').hidden=false});
+// running clock: keeps the time current until she changes it herself
+setInterval(()=>{if(!whenTouched&&!editingId)setNow()},5000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!whenTouched&&!editingId)setNow()});
 
 function resetForm(){
@@ -465,6 +467,7 @@ if(!SR){
 $('#micBtn').addEventListener('click',()=>{
   if(!SR)return;
   if(listening){try{rec.stop()}catch(e){}return}
+  if(!editingId)setNow();
   let finalText='';lastHeard='';
   rec=new SR();rec.lang=navigator.language||'en-US';rec.interimResults=true;rec.continuous=false;rec.maxAlternatives=1;
   rec.onstart=()=>{listening=true;$('#micBtn').classList.add('on');$('#micHint').textContent='Listening… tap the mic again when done';showHeard('')};
