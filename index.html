@@ -18,6 +18,7 @@
   --low:#d92d2d;--ok:#05875f;--high:#c97800;
   --low-soft:#fde4e4;--ok-soft:#dcf3ea;--high-soft:#fdeed3;
   --band:rgba(5,135,95,.10);
+  --ins:#6d4bd1;--ins-soft:#ece6fb;
   --radius:18px;
 }
 @media (prefers-color-scheme:dark){
@@ -27,9 +28,11 @@
     --low:#ff7b7b;--ok:#3ed39f;--high:#ffc04d;
     --low-soft:#3a1d1d;--ok-soft:#14322a;--high-soft:#3a2e14;
     --band:rgba(62,211,159,.10);
+    --ins:#b9a2ff;--ins-soft:#2a2140;
   }
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
 html,body{margin:0;background:var(--bg);color:var(--ink)}
 body{font:17px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
   padding-bottom:calc(84px + env(safe-area-inset-bottom));min-height:100vh}
@@ -143,6 +146,25 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   pointer-events:none;transition:.25s;z-index:20;max-width:calc(100% - 32px);text-align:center}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+.ins-card{display:flex;align-items:center;gap:12px;padding:12px 16px;border-left:5px solid var(--ins)}
+.ins-main{flex:1;min-width:0}
+.ins-label{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.ins-row{display:flex;align-items:baseline;gap:6px}
+#insUnits{width:84px;border:0;border-bottom:2px solid var(--line);background:transparent;font-size:34px;font-weight:800;color:var(--ins);
+  padding:0;outline:none;font-variant-numeric:tabular-nums;-moz-appearance:textfield}
+#insUnits::-webkit-outer-spin-button,#insUnits::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+#insUnits:disabled{border-bottom-color:transparent;opacity:1;-webkit-text-fill-color:var(--ins)}
+#insDone{font-size:14px;color:var(--muted)}
+.ins-btn{flex:none;border:0;border-radius:14px;background:var(--ins);color:#fff;font-weight:700;font-size:16px;padding:14px 16px}
+.ins-btn.undo{background:var(--ins-soft);color:var(--ins)}
+.val.ins{color:var(--ins)}.val small{font-size:14px;font-weight:700;margin-left:1px}
+.pill.ins{background:var(--ins-soft);color:var(--ins)}
+.ins-hist{display:flex;flex-wrap:wrap;gap:8px}
+.ins-hist span{background:var(--ins-soft);color:var(--ins);border-radius:10px;padding:6px 10px;font-weight:700;font-size:14px}
+.ins-hist span em{font-style:normal;color:var(--muted);font-weight:600;margin-right:4px}
+.subhead{font-size:15px;font-weight:700;margin:18px 0 0;color:var(--ins)}
+input[type=date]{width:100%;border:1.5px solid var(--line);border-radius:12px;background:var(--bg);padding:12px;font-size:17px;outline:none;min-height:50px}
+
 #report{display:none}
 @media print{
   .top,main,.tabs,#toast,dialog{display:none!important}
@@ -167,6 +189,14 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 <main>
   <!-- LOG -->
   <section id="tab-log" class="tab active">
+    <div class="card ins-card" id="insCard">
+      <div class="ins-main">
+        <div class="ins-label">Insulin today<span id="insDay"></span></div>
+        <div class="ins-row"><input id="insUnits" type="number" inputmode="numeric" pattern="[0-9]*" min="0" max="300" aria-label="Insulin units"><span class="unit">units</span></div>
+        <div id="insDone"></div>
+      </div>
+      <button type="button" class="ins-btn" id="insBtn">Log dose</button>
+    </div>
     <form id="entryForm" class="card" autocomplete="off">
       <div class="edit-banner" id="editBanner" hidden>Editing a reading <button type="button" id="cancelEdit" class="link">Cancel</button></div>
       <div class="reading-wrap">
@@ -220,6 +250,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     <div class="stats" id="stats"></div>
     <div class="card"><div class="card-title">Readings</div><canvas id="chart"></canvas></div>
     <div class="card"><div class="card-title">Average by time of day</div><div id="byCtx"></div></div>
+    <div class="card"><div class="card-title">Insulin doses</div><div id="insTrend" class="ins-hist"></div></div>
     <button class="primary wide" id="reportBtn">Print / save report for the doctor</button>
     <div style="height:14px"></div>
     <button class="ghost wide" style="padding:14px" id="csvBtn">Export spreadsheet (CSV)</button>
@@ -247,6 +278,26 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
         <input type="number" class="small" id="sHigh" inputmode="numeric" aria-label="High target">
       </div>
     </div>
+    <div class="subhead">Insulin plan</div>
+    <div class="field">
+      <label><input type="checkbox" id="iOn" style="width:auto;margin-right:8px">Track insulin</label>
+    </div>
+    <div class="field">
+      <label for="iStart">Plan start date</label>
+      <input type="date" id="iStart">
+    </div>
+    <div class="field two">
+      <div><label for="iStartUnits">Starting dose</label><input type="number" class="small" id="iStartUnits" inputmode="numeric"></div>
+      <div><label for="iStep">Add each day</label><input type="number" class="small" id="iStep" inputmode="numeric"></div>
+    </div>
+    <div class="field">
+      <label for="iMax">Stop going up at (optional)</label>
+      <input type="number" class="small" id="iMax" inputmode="numeric" placeholder="No limit">
+    </div>
+    <div class="btn-list" style="margin-top:10px"><button type="button" id="iHold"></button></div>
+    <p class="small-note" id="iNote"></p>
+    <p class="small-note">Follow the dose plan her doctor gave — this just keeps count.</p>
+    <div class="subhead" style="color:var(--ink)">Data</div>
     <div class="btn-list">
       <button type="button" id="backupBtn">Back up all readings</button>
       <button type="button" id="restoreBtn">Restore from a backup file</button>
@@ -257,6 +308,19 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     <div class="actions"><button class="primary" value="close">Done</button></div>
   </form>
   <input type="file" id="restoreFile" accept=".json,application/json" hidden>
+</dialog>
+
+<dialog id="doseDlg">
+  <form class="dlg" method="dialog">
+    <h2>Insulin dose</h2>
+    <div class="field"><label for="dUnits">Units</label><input type="number" class="small" id="dUnits" inputmode="numeric"></div>
+    <div class="field"><label for="dWhen">Date &amp; time</label><input type="datetime-local" id="dWhen"></div>
+    <div class="actions">
+      <button type="button" class="primary" id="dSave">Save</button>
+      <button type="button" class="danger" id="dDel">Delete</button>
+    </div>
+    <div style="text-align:center;margin-top:8px"><button class="link" value="cancel">Cancel</button></div>
+  </form>
 </dialog>
 
 <div id="toast" role="status"></div>
@@ -359,14 +423,16 @@ if(typeof module!=='undefined')module.exports={parseSpeech,wordsToDigits};
 /* ---------- app ---------- */
 const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
-const KEY='sugarlog.entries.v1',SKEY='sugarlog.settings.v1';
+const KEY='sugarlog.entries.v1',SKEY='sugarlog.settings.v1',DKEY='sugarlog.doses.v1';
 const load=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v??d}catch(e){return d}};
 let entries=load(KEY,[]);
 let settings=Object.assign({low:70,high:180,name:'',lastBackup:0},load(SKEY,{}));
+settings.insulin=Object.assign({on:true,start:'2026-11-10',startUnits:10,step:1,max:null,holdFrom:null},settings.insulin||{});
+let doses=load(DKEY,[]);
 let editingId=null,ctx='',range=14,whenTouched=false;
 
 function persist(){
-  try{localStorage.setItem(KEY,JSON.stringify(entries));localStorage.setItem(SKEY,JSON.stringify(settings))}
+  try{localStorage.setItem(KEY,JSON.stringify(entries));localStorage.setItem(SKEY,JSON.stringify(settings));localStorage.setItem(DKEY,JSON.stringify(doses))}
   catch(e){toast('Could not save — browser storage is blocked')}
 }
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -414,7 +480,11 @@ function setNow(){$('#when').value=toLocalInput(new Date());whenTouched=false;$(
 $('#nowBtn').addEventListener('click',setNow);
 $('#when').addEventListener('change',()=>{whenTouched=true;if(!editingId)$('#nowBtn').hidden=false});
 // running clock: keeps the time current until she changes it herself
-setInterval(()=>{if(!whenTouched&&!editingId)setNow()},5000);
+let lastDay=dayKey(Date.now());
+setInterval(()=>{
+  if(!whenTouched&&!editingId)setNow();
+  const k=dayKey(Date.now());if(k!==lastDay){lastDay=k;insEdited=false;renderAll()}
+},5000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!whenTouched&&!editingId)setNow()});
 
 function resetForm(){
@@ -454,7 +524,7 @@ $('#deleteBtn').addEventListener('click',()=>{
   if(!editingId||!confirm('Delete this reading?'))return;
   entries=entries.filter(x=>x.id!==editingId);persist();resetForm();renderAll();toast('Deleted');
 });
-document.addEventListener('click',e=>{const b=e.target.closest('.entry');if(b)startEdit(b.dataset.id)});
+document.addEventListener('click',e=>{const b=e.target.closest('.entry');if(!b)return;if(b.dataset.did)openDose(b.dataset.did);else startEdit(b.dataset.id)});
 
 /* ---------- voice ---------- */
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
@@ -503,19 +573,84 @@ function rowHTML(e){
   const s=status(e.value);
   return `<button class="entry" data-id="${e.id}"><span class="val ${s}">${e.value}</span><span class="meta"><span class="t">${fmtTime(e.ts)}${e.ctx?' · '+esc(e.ctx):''}</span>${e.notes?`<span class="n">${esc(e.notes)}</span>`:''}</span><span class="pill ${s}">${STATUS_TXT[s]}</span></button>`;
 }
+function doseRowHTML(d){
+  return `<button class="entry" data-did="${d.id}"><span class="val ins">${d.units}<small>u</small></span><span class="meta"><span class="t">${fmtTime(d.ts)} · Insulin</span></span><span class="pill ins">Insulin</span></button>`;
+}
+const anyRow=x=>x.units!=null?doseRowHTML(x):rowHTML(x);
 function renderToday(){
   const k=dayKey(Date.now());
-  const list=entries.filter(e=>dayKey(e.ts)===k).sort((a,b)=>b.ts-a.ts);
-  $('#todayList').innerHTML=list.length?list.map(rowHTML).join(''):'<div class="muted">No readings yet today.</div>';
+  const list=[...entries,...doses].filter(e=>dayKey(e.ts)===k).sort((a,b)=>b.ts-a.ts);
+  $('#todayList').innerHTML=list.length?list.map(anyRow).join(''):'<div class="muted">Nothing logged yet today.</div>';
 }
+
+/* ---------- insulin plan ---------- */
+const dateOnly=k=>{const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d)};
+const daysBetween=(a,b)=>Math.round((dateOnly(b)-dateOnly(a))/864e5);
+function plannedDose(k){
+  const p=settings.insulin;
+  let n=daysBetween(p.start,k);if(n<0)return null;
+  if(p.holdFrom)n=Math.min(n,Math.max(0,daysBetween(p.start,p.holdFrom)));
+  let u=p.startUnits+p.step*n;
+  if(p.max)u=Math.min(u,p.max);
+  return Math.max(0,u);
+}
+let insEdited=false;
+function renderIns(){
+  const p=settings.insulin,card=$('#insCard');
+  card.hidden=!p.on;if(!p.on)return;
+  const k=dayKey(Date.now());
+  const today=doses.filter(d=>dayKey(d.ts)===k).sort((a,b)=>b.ts-a.ts)[0];
+  const plan=plannedDose(k);
+  const n=daysBetween(p.start,k)+1;
+  const inp=$('#insUnits'),btn=$('#insBtn');
+  if(today){
+    inp.value=today.units;inp.disabled=true;
+    $('#insDone').textContent=`✓ Taken at ${fmtTime(today.ts)}`;
+    btn.textContent='Undo';btn.classList.add('undo');
+  } else {
+    inp.disabled=false;
+    if(!insEdited)inp.value=plan??'';
+    $('#insDone').textContent=plan==null?`Plan starts ${dateOnly(p.start).toLocaleDateString([],{month:'short',day:'numeric'})}`:'Not taken yet';
+    btn.textContent='Log dose';btn.classList.remove('undo');
+  }
+  $('#insDay').textContent=plan==null?'':p.holdFrom?' · holding':` · day ${n}`;
+}
+$('#insUnits').addEventListener('input',()=>{insEdited=true});
+$('#insBtn').addEventListener('click',()=>{
+  const k=dayKey(Date.now());
+  const today=doses.filter(d=>dayKey(d.ts)===k).sort((a,b)=>b.ts-a.ts)[0];
+  if(today){doses=doses.filter(d=>d.id!==today.id);insEdited=false;persist();renderAll();toast('Dose removed');return}
+  const u=Math.round(+$('#insUnits').value);
+  if(!(u>0)){toast('Enter the units first');$('#insUnits').focus();return}
+  doses.push({id:uid(),ts:Date.now(),units:u});insEdited=false;persist();renderAll();toast(`Logged ${u} units`);
+});
+let doseEditing=null;
+function openDose(id){
+  const d=doses.find(x=>x.id===id);if(!d)return;doseEditing=id;
+  $('#dUnits').value=d.units;$('#dWhen').value=toLocalInput(new Date(d.ts));$('#doseDlg').showModal();
+}
+$('#dSave').addEventListener('click',()=>{
+  const d=doses.find(x=>x.id===doseEditing);if(!d)return;
+  const u=Math.round(+$('#dUnits').value),t=new Date($('#dWhen').value).getTime();
+  if(!(u>0)){toast('Enter the units');return}
+  d.units=u;if(!isNaN(t))d.ts=t;persist();renderAll();$('#doseDlg').close();toast('Dose updated');
+});
+$('#dDel').addEventListener('click',()=>{
+  if(!confirm('Delete this dose?'))return;
+  doses=doses.filter(x=>x.id!==doseEditing);persist();renderAll();$('#doseDlg').close();toast('Dose deleted');
+});
 function renderHistory(){
-  if(!entries.length){$('#historyList').innerHTML='<div class="empty">Nothing logged yet.<br>Readings will show up here, grouped by day.</div>';return}
-  const sorted=[...entries].sort((a,b)=>b.ts-a.ts);
+  if(!entries.length&&!doses.length){$('#historyList').innerHTML='<div class="empty">Nothing logged yet.<br>Readings will show up here, grouped by day.</div>';return}
+  const sorted=[...entries,...doses].sort((a,b)=>b.ts-a.ts);
   const groups=new Map();
   for(const e of sorted){const k=dayKey(e.ts);if(!groups.has(k))groups.set(k,[]);groups.get(k).push(e)}
   let html='';
   for(const [,list] of groups){
-    html+=`<div class="day-h"><span>${dayLabel(list[0].ts)}</span><span class="muted">avg ${avg(list)} · ${list.length} reading${list.length>1?'s':''}</span></div><div class="card list">${list.map(rowHTML).join('')}</div>`;
+    const r=list.filter(x=>x.units==null),ins=list.filter(x=>x.units!=null);
+    const bits=[];
+    if(r.length)bits.push(`avg ${avg(r)} · ${r.length} reading${r.length>1?'s':''}`);
+    if(ins.length)bits.push(`${ins.reduce((s,d)=>s+d.units,0)}u insulin`);
+    html+=`<div class="day-h"><span>${dayLabel(list[0].ts)}</span><span class="muted">${bits.join(' · ')}</span></div><div class="card list">${list.map(anyRow).join('')}</div>`;
   }
   $('#historyList').innerHTML=html;
 }
@@ -540,6 +675,9 @@ function renderTrends(){
     const a=avg(g),s=status(a);
     return `<div class="ctx-row"><span class="name">${c||'Not set'}</span><span class="bar"><i style="width:${Math.min(100,a/maxV*100)}%;background:var(--${s})"></i></span><span class="num">${a} <span class="muted">×${g.length}</span></span></div>`;
   }).join('')||'<div class="muted">No data yet.</div>';
+  const since=Date.now()-range*864e5;
+  const dl=doses.filter(d=>d.ts>=since).sort((a,b)=>b.ts-a.ts);
+  $('#insTrend').innerHTML=dl.length?dl.map(d=>`<span><em>${new Date(d.ts).toLocaleDateString([],{month:'numeric',day:'numeric'})}</em>${d.units}u</span>`).join(''):'<div class="muted">No doses logged in this range.</div>';
   drawChart(list);
 }
 function drawChart(list){
@@ -572,7 +710,7 @@ function drawChart(list){
   for(const e of list){g.fillStyle=c('--'+status(e.value));g.beginPath();g.arc(X(e.ts),Y(e.value),range>30?3:4.5,0,7);g.fill()}
 }
 function renderAll(){
-  renderToday();renderHistory();
+  renderIns();renderToday();renderHistory();
   if($('#tab-trends').classList.contains('active'))renderTrends();
   const nm=(settings.name||'').trim();
   $('#appTitle').textContent=nm?`${nm}'s Sugar Log`:'Sugar Log';
@@ -599,12 +737,16 @@ async function shareOrDownload(name,text,type){
   setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500);return true;
 }
 function toCSV(list){
-  const rows=[['Date','Time','Reading (mg/dL)','Status','When','Notes']];
-  for(const e of list){const d=new Date(e.ts);rows.push([d.toLocaleDateString(),fmtTime(e.ts),e.value,STATUS_TXT[status(e.value)],e.ctx||'',e.notes||''])}
+  const rows=[['Date','Time','Type','Value','Unit','Status','When','Notes']];
+  for(const e of list){
+    const d=new Date(e.ts);
+    if(e.units!=null)rows.push([d.toLocaleDateString(),fmtTime(e.ts),'Insulin',e.units,'units','','',''])
+    else rows.push([d.toLocaleDateString(),fmtTime(e.ts),'Blood sugar',e.value,'mg/dL',STATUS_TXT[status(e.value)],e.ctx||'',e.notes||''])
+  }
   return rows.map(r=>r.map(x=>`"${String(x).replace(/"/g,'""')}"`).join(',')).join('\r\n');
 }
 $('#csvBtn').addEventListener('click',()=>{
-  const list=[...entries].sort((a,b)=>a.ts-b.ts);
+  const list=[...entries,...doses].sort((a,b)=>a.ts-b.ts);
   if(!list.length){toast('Nothing to export yet');return}
   shareOrDownload(`sugar-log-${dayKey(Date.now())}.csv`,toCSV(list),'text/csv');
 });
@@ -619,13 +761,20 @@ $('#reportBtn').addEventListener('click',()=>{
     <div class="sum"><div><b>${list.length}</b> readings</div><div>Average <b>${avg(list)}</b></div><div>Range <b>${Math.min(...vals)}–${Math.max(...vals)}</b></div><div>In range <b>${Math.round(ok/list.length*100)}%</b></div></div>
     <table><thead><tr><th>Date</th><th>Time</th><th>mg/dL</th><th>Status</th><th>When</th><th>Notes</th></tr></thead><tbody>
     ${[...list].reverse().map(e=>`<tr><td>${new Date(e.ts).toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'})}</td><td>${fmtTime(e.ts)}</td><td><b>${e.value}</b></td><td>${STATUS_TXT[status(e.value)]}</td><td>${esc(e.ctx||'')}</td><td>${esc(e.notes||'')}</td></tr>`).join('')}
-    </tbody></table>`;
+    </tbody></table>
+    ${(()=>{const since=Date.now()-range*864e5;const dl=doses.filter(d=>d.ts>=since).sort((a,b)=>b.ts-a.ts);
+      return dl.length?`<h3 style="margin-top:16px">Insulin doses</h3><table><thead><tr><th>Date</th><th>Time</th><th>Units</th></tr></thead><tbody>${dl.map(d=>`<tr><td>${new Date(d.ts).toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'})}</td><td>${fmtTime(d.ts)}</td><td><b>${d.units}</b></td></tr>`).join('')}</tbody></table>`:''})()}`;
   window.print();
 });
 
 /* ---------- settings ---------- */
 function fillSettings(){
   $('#sName').value=settings.name||'';$('#sLow').value=settings.low;$('#sHigh').value=settings.high;
+  const p=settings.insulin;
+  $('#iOn').checked=p.on;$('#iStart').value=p.start;$('#iStartUnits').value=p.startUnits;$('#iStep').value=p.step;$('#iMax').value=p.max??'';
+  $('#iHold').textContent=p.holdFrom?'Resume daily increase':'Hold at today’s dose';
+  const t=plannedDose(dayKey(Date.now()));
+  $('#iNote').textContent=t==null?'':p.holdFrom?`Holding at ${t} units.`:`Today’s dose: ${t} units. Tomorrow: ${plannedDose(dayKey(Date.now()+864e5))} units.`;
   $('#backupNote').textContent=settings.lastBackup?`Last backup: ${new Date(settings.lastBackup).toLocaleDateString()}`:'No backup made yet.';
 }
 $('#openSettings').addEventListener('click',()=>{fillSettings();$('#settings').showModal()});
@@ -636,8 +785,25 @@ function saveRange(){
   else toast('Low must be less than high');
 }
 $('#sLow').addEventListener('change',saveRange);$('#sHigh').addEventListener('change',saveRange);
+function saveIns(){
+  const p=settings.insulin;
+  p.on=$('#iOn').checked;
+  if($('#iStart').value)p.start=$('#iStart').value;
+  const su=Math.round(+$('#iStartUnits').value),st=Math.round(+$('#iStep').value),mx=Math.round(+$('#iMax').value);
+  if(su>=0&&$('#iStartUnits').value!=='')p.startUnits=su;
+  if($('#iStep').value!=='')p.step=st;
+  p.max=mx>0?mx:null;
+  insEdited=false;persist();renderAll();fillSettings();
+}
+['#iOn','#iStart','#iStartUnits','#iStep','#iMax'].forEach(s=>$(s).addEventListener('change',saveIns));
+$('#iHold').addEventListener('click',()=>{
+  const p=settings.insulin,k=dayKey(Date.now());
+  if(p.holdFrom){const cur=plannedDose(k);p.start=k;p.startUnits=cur??p.startUnits;p.holdFrom=null;toast('Daily increase resumed')}
+  else{p.holdFrom=k;toast('Holding at today’s dose')}
+  insEdited=false;persist();renderAll();fillSettings();
+});
 $('#backupBtn').addEventListener('click',async()=>{
-  const data=JSON.stringify({app:'sugar-log',version:1,exported:new Date().toISOString(),settings:{low:settings.low,high:settings.high,name:settings.name},entries},null,1);
+  const data=JSON.stringify({app:'sugar-log',version:1,exported:new Date().toISOString(),settings:{low:settings.low,high:settings.high,name:settings.name,insulin:settings.insulin},entries,doses},null,1);
   const done=await shareOrDownload(`sugar-log-backup-${dayKey(Date.now())}.json`,data,'application/json');
   if(done){settings.lastBackup=Date.now();persist();fillSettings()}
 });
@@ -653,14 +819,22 @@ $('#restoreFile').addEventListener('change',async e=>{
       if(!x||!x.id||have.has(x.id)||!Number.isFinite(+x.value)||!Number.isFinite(+x.ts))continue;
       entries.push({id:String(x.id),value:Math.round(+x.value),ts:+x.ts,ctx:String(x.ctx||''),notes:String(x.notes||'')});added++;
     }
-    persist();renderAll();toast(`Restored ${added} reading${added===1?'':'s'}`);
+    let addedD=0;
+    if(Array.isArray(d.doses)){
+      const haveD=new Set(doses.map(x=>x.id));
+      for(const x of d.doses){
+        if(!x||!x.id||haveD.has(x.id)||!Number.isFinite(+x.units)||!Number.isFinite(+x.ts))continue;
+        doses.push({id:String(x.id),ts:+x.ts,units:Math.round(+x.units)});addedD++;
+      }
+    }
+    persist();renderAll();toast(`Restored ${added} reading${added===1?'':'s'}${addedD?` and ${addedD} dose${addedD===1?'':'s'}`:''}`);
   }catch(err){toast('That file isn’t a Sugar Log backup')}
 });
 $('#clearBtn').addEventListener('click',()=>{
-  if(!entries.length){toast('Already empty');return}
-  if(!confirm(`Erase all ${entries.length} readings from this phone?`))return;
+  if(!entries.length&&!doses.length){toast('Already empty');return}
+  if(!confirm(`Erase all ${entries.length} readings and ${doses.length} insulin doses from this phone?`))return;
   if(!confirm('Are you sure? This can’t be undone unless you have a backup.'))return;
-  entries=[];persist();renderAll();toast('All readings erased');
+  entries=[];doses=[];persist();renderAll();toast('Everything erased');
 });
 
 /* ---------- earlier readings (added once, won't come back if deleted) ---------- */
